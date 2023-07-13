@@ -3,6 +3,13 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 import PyPDF2
 
+# pip install openai
+# pip install streamlit
+# pip install PyPDF2
+# once you get a new api key, go to secrets.toml and add it instead of pass
+
+# run the code --> streamlit run main.py
+
 # Set the GPT-3 API key
 openai.api_key = st.secrets["pass"]
 
