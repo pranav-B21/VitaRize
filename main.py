@@ -2,6 +2,10 @@ import openai
 import streamlit as st
 from streamlit_option_menu import option_menu
 import PyPDF2
+from transformers import pipeline
+import pandas as pd
+import altair as alt
+
 
 # pip install openai
 # pip install streamlit
@@ -13,24 +17,26 @@ import PyPDF2
 # Set the GPT-3 API key
 openai.api_key = st.secrets["pass"]
 
+sentiment_score = {}
+
 logo = "Design.png"
 st.image(logo, use_column_width=True)
 
 selected_page = option_menu(
     menu_title=None,
-    options=["Home", "Summarizer"],
+    options=["Home", "Summarizer", "Sentiment"],
     menu_icon="cast",
     default_index=0,
     orientation="horizontal",
 )
 
 
-def generate_summary(text, temperature, length):
+def generate_summary(text, temperature, length, user_prompt):
     # Use GPT-3 to generate a summary of the article
     response = openai.Completion.create(
         engine="text-davinci-002",
-        prompt="This is the user prompt for how the text should be summarized" +
-        "here is the text:" + text,
+        prompt="What do you want to learn from this paper? " +
+        user_prompt + " Here is the text:" + text,
         temperature=temperature,
         max_tokens=length,
     )
@@ -56,8 +62,14 @@ def extract_text_from_pdf(file):
     return text
 
 
+def predict_sentiment(text):
+    classifier = pipeline("sentiment-analysis")
+    result = classifier(user_input)[0]
+    return result
+
+
 if selected_page == "Summarizer":
-    st.title("PDF Summarization")
+    st.title("PDF Analyzer")
     # Upload PDF file
     uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
 
@@ -70,11 +82,34 @@ if selected_page == "Summarizer":
             "Temperature", min_value=0.0, max_value=1.0, step=0.1, value=0.5)
         length = st.slider("Length of Summary", min_value=50,
                            max_value=500, step=50, value=100)
+        user_prompt = st.text_input(
+            "Ask questions about this file")
 
         if st.button("Generate Summary"):
-            summary = generate_summary(text, temperature, length)
+            summary = generate_summary(text, temperature, length, user_prompt)
             st.header("Summary")
             st.write(summary)
+
+if selected_page == "Sentiment":
+    st.title("Sentiment Analyzer")
+    st.write(
+        'Upload your file or write some text. The app will predict its sentiment.')
+    uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
+    user_input = st.text_input("Enter your text here")
+    text = ":)"
+
+    if uploaded_file is not None:
+        # Convert PDF to text
+        text = extract_text_from_pdf(uploaded_file)
+    elif user_input:
+        text = user_input
+
+    # Sentiment analysis
+    if text is not None:
+        if st.button('Predict Sentiment'):
+            sentiment_score = predict_sentiment(user_input)
+            st.write('The sentiment score is:', sentiment_score["score"])
+            st.write('The sentiment is:', sentiment_score["label"])
 
 if selected_page == "Home":
     st.title("Home Page")
