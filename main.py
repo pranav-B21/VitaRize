@@ -25,6 +25,7 @@ st.image(logo, use_column_width=True)
 selected_page = option_menu(
     menu_title=None,
     options=["Home", "Summarizer", "Sentiment"],
+    icons=["house", "info", "heart"],
     menu_icon="cast",
     default_index=0,
     orientation="horizontal",
