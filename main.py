@@ -13,10 +13,12 @@ import PyPDF2
 # Set the GPT-3 API key
 openai.api_key = st.secrets["pass"]
 
+logo = "Design.png"
+st.image(logo, use_column_width=True)
+
 selected_page = option_menu(
     menu_title=None,
-    options=["Summarizer", "feature_2"],
-    icons=["info", "info"],
+    options=["Home", "Summarizer"],
     menu_icon="cast",
     default_index=0,
     orientation="horizontal",
@@ -73,3 +75,9 @@ if selected_page == "Summarizer":
             summary = generate_summary(text, temperature, length)
             st.header("Summary")
             st.write(summary)
+
+if selected_page == "Home":
+    st.title("Home Page")
+    st.write(
+        "Welcome to VitaRize! This application is a customized document summarizer that you can use for anything!")
+    st.write("This was made with OpenAI API and Langchain")
