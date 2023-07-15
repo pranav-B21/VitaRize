@@ -12,6 +12,10 @@ from PIL import Image
 # pip install openai
 # pip install streamlit
 # pip install PyPDF2
+# pip install transformers
+# pip install torch
+# brew install poppler-qt5
+# pip install pytesseract / brew install tesseract (i would do both to be safe)
 # once you get a new api key, go to secrets.toml and add it instead of pass
 
 # run the code --> streamlit run main.py
