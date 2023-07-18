@@ -13,6 +13,8 @@ from gtts import gTTS
 from streamlit_option_menu import option_menu
 from streamlit_chat import message
 from transformers import pipeline
+from googletrans import Translator, constants
+
 
 # pip install openai
 # pip install streamlit
@@ -36,8 +38,8 @@ st.image(logo, use_column_width=True)
 
 selected_page = option_menu(
     menu_title=None,
-    options=["Home", "Summarizer", "Sentiment"],
-    icons=["house", "info", "heart"],
+    options=["Home", "Summarizer", "Sentiment", "Translator"],
+    icons=["house", "info", "heart", "person-circle"],
     menu_icon="cast",
     default_index=0,
     orientation="horizontal",
@@ -124,7 +126,6 @@ if selected_page == "Summarizer":
 
 
 if selected_page == "Sentiment":
-    print("sentiment")
     st.title("Sentiment Analyzer")
     st.write(
         'Upload your file (either a PNG or PDF) or write some text. The app will predict its sentiment.')
@@ -147,6 +148,51 @@ if selected_page == "Sentiment":
             sentiment_score = predict_sentiment(user_input)
             st.write('The sentiment score is:', sentiment_score["score"])
             st.write('The sentiment is:', sentiment_score["label"])
+
+if selected_page == "Translator":
+    st.title("Translator")
+
+    # Initialize the translator
+    translator = Translator()
+
+    # Text to be translated
+    with st.form("translation_form"):
+        # Upload PDF/png file
+        uploaded_file = st.file_uploader("Upload a PDF file", type=['pdf'])
+        uploaded_image = st.file_uploader("Upload a PNG file", type=['png'])
+
+        submitted = st.form_submit_button("Translate")
+
+    # Language detection and translation
+    if submitted:
+        if uploaded_file is not None:
+            # Convert PDF to text
+            text_to_translate = extract_text_from_pdf(uploaded_file)
+        elif uploaded_image is not None:
+            # Convert PNG to text
+            text_to_translate = extract_text_from_img(uploaded_image)
+
+        if text_to_translate:
+            try:
+                # Detect the language of the input text
+                detected_language = translator.detect(text_to_translate).lang
+                # st.write(text_to_translate)
+                st.write(f"Detected Language: {detected_language}")
+
+                # Allow the user to select the target language
+                # target_language = st.selectbox(
+                #    "Select Target Language:", constants.LANGUAGES)
+
+                # Translate the text
+                translated_text = translator.translate(
+                    text_to_translate, src=detected_language, dest='en')
+                st.success(translated_text.text)
+
+            except Exception as e:
+                st.error(f"Error: {e}")
+        else:
+            st.warning("Please enter some text to translate.")
+
 
 if selected_page == "Home":
     st.title("Home Page")
