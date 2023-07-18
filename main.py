@@ -6,6 +6,7 @@ import altair as alt
 import pytesseract
 import pyttsx3 as engine
 import io
+import os
 
 
 from PIL import Image
@@ -21,6 +22,10 @@ from googletrans import Translator, constants
 # pip install PyPDF2
 # pip install transformers
 # pip install torch
+# pip install gtts
+# pip install streamlit_option_menu
+# pip install streamlit_chat
+# pip install googletrans
 # pip install pyttsx3
 # brew install poppler-qt5
 # pip install pytesseract / brew install tesseract (i would do both to be safe)
@@ -38,12 +43,26 @@ st.image(logo, use_column_width=True)
 
 selected_page = option_menu(
     menu_title=None,
-    options=["Home", "Summarizer", "Sentiment", "Translator"],
-    icons=["house", "info", "heart", "person-circle"],
+    options=["Home", "Summarizer", "Sentiment", "Translator", "Questions about File"],
+    icons=["house", "info", "heart", "person-circle", "question"],
     menu_icon="cast",
     default_index=0,
     orientation="horizontal",
 )
+
+def generate_answer(text, question):
+    response = openai.Completion.create(
+        engine="text-davinci-002",
+        prompt=f"Answer the following question based on these texts:\n\n{text}\n\nQuestion: {question} \n ",
+        temperature=0.5,
+        max_tokens=100,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0,
+    )
+
+    answer = response.choices[0].text.strip()
+    return answer
 
 
 def generate_summary(text, temperature, length):
@@ -193,9 +212,32 @@ if selected_page == "Translator":
         else:
             st.warning("Please enter some text to translate.")
 
+if selected_page == "Questions about File":
+    st.title("Answer your questions!")
+    st.write(
+        'Upload your file (either a PNG or PDF), and type in a question regarding the files you uploaded. The app will do its best to answer it.')
+    uploaded_file = st.file_uploader("Upload a PDF file", type=['pdf'])
+    uploaded_image = st.file_uploader("Upload a PNG file", type=['png'])
+    if uploaded_file is not None:
+        # Convert PDF to text
+        text = extract_text_from_pdf(uploaded_file)
+        # Question settings
+        question = st.text_input("Enter your question here")
+        if st.button("Generate Answer"):
+            st.write(generate_answer(text, question))
+
+    if uploaded_image is not None:
+        # Convert PNG to text
+        text = extract_text_from_img(uploaded_image)
+        # Prompt settings
+        # Question settings
+        question = st.text_input("Enter your question here")
+        if st.button("Generate Answer"):
+            st.write(generate_answer(text, question))
+
 
 if selected_page == "Home":
     st.title("Home Page")
     st.write(
-        "Welcome to VitaRize! This application is a customized document summarizer that you can use for anything!")
+        "Welcome to VitaRize! This application is a customized document summarizer that you can use for anything! The application can summarize a file uploaded, predict its sentiment, translate the contents, and even answer questions about the file that you may have! You can navigate to any of the pages in the top bar to use the functions.")
     st.write("This was made with OpenAI API and Altair")
