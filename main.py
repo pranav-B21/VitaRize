@@ -16,6 +16,8 @@ from streamlit_chat import message
 from transformers import pipeline
 from googletrans import Translator, constants
 
+# application created with open AI for summart, altair for pdf scraping, pytesseract for png scraping, gtts for text to speech
+# and we implemented google translates API for translation
 
 # pip install openai
 # pip install streamlit
