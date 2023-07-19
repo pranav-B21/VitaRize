@@ -3,7 +3,7 @@ import streamlit as st
 import PyPDF2
 import pandas as pd
 import altair as alt
-import pytesseract
+import pytesseract as ps
 import pyttsx3 as engine
 import io
 import os
@@ -38,17 +38,19 @@ openai.api_key = st.secrets["pass"]
 
 sentiment_score = {}
 
-logo = "Design (2).png"
+logo = "VitaRize.png"
 st.image(logo, use_column_width=True)
 
 selected_page = option_menu(
     menu_title=None,
-    options=["Home", "Summarizer", "Sentiment", "Translator", "Questions about File"],
-    icons=["house", "info", "heart", "person-circle", "question"],
+    options=["Home", "Summarizer", "Sentiment",
+             "Translator"],
+    icons=["house", "info", "heart", "person-circle"],
     menu_icon="cast",
-    default_index=0,
+    default_index=3,
     orientation="horizontal",
 )
+
 
 def generate_answer(text, question):
     response = openai.Completion.create(
@@ -73,21 +75,13 @@ def generate_summary(text, temperature, length):
         temperature=temperature,
         max_tokens=length,
     )
-    # Print the generated summary
-    res = response["choices"][0]["text"]
-    st.success(res)
-    st.download_button('Download result', res)
-
-    # Convert summary to speech
-    tts = gTTS(text=res, lang='en', slow=False)
-    audio_file = io.BytesIO()
-    tts.write_to_fp(audio_file)
-    st.audio(audio_file, format='audio/mp3')
+    # return
+    return response["choices"][0]["text"]
 
 
 def extract_text_from_img(file):
     # Convert the image into a string
-    text = str(((pytesseract.image_to_string(Image.open(file)))))
+    text = str(((ps.image_to_string(Image.open(file)))))
     text = text.replace("-\n", "")
     return text
 
@@ -115,10 +109,13 @@ def predict_sentiment(text):
 
 
 if selected_page == "Summarizer":
-    st.title("Document Analyzer")
+    st.title("Summarizer")
+    st.write('Upload your file (either a PNG or PDF), and you will get a summary!')
+
     # Upload PDF file
     uploaded_file = st.file_uploader("Upload a PDF file", type=['pdf'])
     uploaded_image = st.file_uploader("Upload a PNG file", type=['png'])
+
     if uploaded_file is not None:
         # Convert PDF to text
         text = extract_text_from_pdf(uploaded_file)
@@ -129,7 +126,19 @@ if selected_page == "Summarizer":
                            max_value=500, step=50, value=100)
 
         if st.button("Generate Summary"):
-            generate_summary(text, temperature, length)
+            res = generate_summary(text, temperature, length)
+            st.success(res)
+            st.download_button('Download result', res)
+
+            # Convert summary to speech
+            tts = gTTS(text=res, lang='en', slow=False)
+            audio_file = io.BytesIO()
+            tts.write_to_fp(audio_file)
+            st.audio(audio_file, format='audio/mp3')
+
+            question = st.text_input("Enter your question here")
+            ans = generate_answer(text, question)
+            st.success(ans)
 
     if uploaded_image is not None:
         # Convert PNG to text
@@ -141,13 +150,25 @@ if selected_page == "Summarizer":
                            max_value=500, step=50, value=100)
 
         if st.button("Generate Summary"):
-            generate_summary(text, temperature, length)
+            res = generate_summary(text, temperature, length)
+            st.success(res)
+            st.download_button('Download result', res)
+
+            # Convert summary to speech
+            tts = gTTS(text=res, lang='en', slow=False)
+            audio_file = io.BytesIO()
+            tts.write_to_fp(audio_file)
+            st.audio(audio_file, format='audio/mp3')
+
+            question = st.text_input("Enter your question here")
+            ans = generate_answer(text, question)
+            st.success(ans)
 
 
 if selected_page == "Sentiment":
-    st.title("Sentiment Analyzer")
+    st.title("Sentiment")
     st.write(
-        'Upload your file (either a PNG or PDF) or write some text. The app will predict its sentiment.')
+        'Upload your file (either a PNG or PDF) or write some text and the app will predict its sentiment!')
     uploaded_file = st.file_uploader("Upload a PDF file", type=['pdf'])
     uploaded_image = st.file_uploader("Upload a PNG file", type=['png'])
     user_input = st.text_input("Enter your text here")
@@ -168,43 +189,38 @@ if selected_page == "Sentiment":
             st.write('The sentiment score is:', sentiment_score["score"])
             st.write('The sentiment is:', sentiment_score["label"])
 
+
 if selected_page == "Translator":
     st.title("Translator")
+    st.write(
+        'Upload your file (either a PNG or PDF) and you will get a translation!')
 
     # Initialize the translator
     translator = Translator()
 
-    # Text to be translated
-    with st.form("translation_form"):
-        # Upload PDF/png file
-        uploaded_file = st.file_uploader("Upload a PDF file", type=['pdf'])
-        uploaded_image = st.file_uploader("Upload a PNG file", type=['png'])
+    uploaded_file = st.file_uploader("Upload a PDF file", type=['pdf'])
+    uploaded_image = st.file_uploader("Upload a PNG file", type=['png'])
+    user_input = st.text_input("Enter your text here")
+    text = ":)"
 
-        submitted = st.form_submit_button("Translate")
+    if uploaded_file is not None:
+        # Convert PDF to text
+        text = extract_text_from_pdf(uploaded_file)
+    elif uploaded_image is not None:
+        text = extract_text_from_img(uploaded_image)
+    elif user_input:
+        text = user_input
 
-    # Language detection and translation
-    if submitted:
-        if uploaded_file is not None:
-            # Convert PDF to text
-            text_to_translate = extract_text_from_pdf(uploaded_file)
-        elif uploaded_image is not None:
-            # Convert PNG to text
-            text_to_translate = extract_text_from_img(uploaded_image)
-
-        if text_to_translate:
+    if st.button("Translate"):
+        if text:
             try:
                 # Detect the language of the input text
-                detected_language = translator.detect(text_to_translate).lang
-                # st.write(text_to_translate)
+                detected_language = translator.detect(text).lang
                 st.write(f"Detected Language: {detected_language}")
-
-                # Allow the user to select the target language
-                # target_language = st.selectbox(
-                #    "Select Target Language:", constants.LANGUAGES)
 
                 # Translate the text
                 translated_text = translator.translate(
-                    text_to_translate, src=detected_language, dest='en')
+                    text, src=detected_language, dest='en')
                 st.success(translated_text.text)
 
             except Exception as e:
@@ -212,8 +228,8 @@ if selected_page == "Translator":
         else:
             st.warning("Please enter some text to translate.")
 
-if selected_page == "Questions about File":
-    st.title("Answer your questions!")
+if selected_page == "Questions":
+    st.title("Questions")
     st.write(
         'Upload your file (either a PNG or PDF), and type in a question regarding the files you uploaded. The app will do its best to answer it.')
     uploaded_file = st.file_uploader("Upload a PDF file", type=['pdf'])
